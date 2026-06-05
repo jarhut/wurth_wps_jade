@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WPS Expense Claims Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js",
+          "compressorjs": "https://unpkg.com/compressorjs@1.2.1/dist/compressor.esm.js"
+        }
+      }
+    </script>
+</head>
+<body>
+    <div id="app" class="app-container" v-cloak>
+        
+        <div v-if="isSubmitting" class="loading-overlay">
+            <div class="spinner"></div>
+            <p>Processing Workspace Parameters...</p>
+        </div>
+
+        <div v-if="!currentUser" class="modal-overlay" style="background-color: #f3f4f6;">
+            <div class="modal-card" style="max-width: 400px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <img src="https://www.wuerth-professional.com/pictures/Professional-Solution/Logo/wps.svg" alt="WPS Logo" style="height: 40px; margin-bottom: 1rem;">
+                    <h2>Expense Claim Login</h2>
+                </div>
+                <form @submit.prevent="handleLogin">
+                    <div class="form-group" style="text-align: left;">
+                        <label>Corporate Email</label>
+                        <input type="email" v-model="loginForm.email" placeholder="claimant1@wurth-wps.com" required style="width:100%;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin-top: 1rem;">
+                        <label>Security Password</label>
+                        <input type="password" v-model="loginForm.password" placeholder="••••••••" required style="width:100%;">
+                    </div>
+                    <div v-if="authError" style="color: var(--wurth-red); font-size: 0.85rem; margin-top: 10px; text-align: left;">
+                        {{ authError }}
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;">Authenticate</button>
+                </form>
+            </div>
+        </div>
+
+        <div v-else>
+            
+            <header>
+                <div class="logo-container" style="display:flex; align-items:center; gap: 15px;">
+                    <img src="https://www.wuerth-professional.com/pictures/Professional-Solution/Logo/wps.svg" alt="WPS Logo" class="brand-logo">
+                    <button @click="handleLogout" class="btn-text" style="font-size:0.8rem; color:var(--text-muted); cursor:pointer;">[ Logout ]</button>
+                </div>
+                <div class="status-indicator" v-if="currentUser.role === 'claimant'">
+                    <span v-if="saveStatus === 'saving'">Saving...</span>
+                    <span v-if="saveStatus === 'saved'" style="color: green;">Saved</span>
+                </div>
+            </header>
+
+            <div v-if="showDraftModal" class="modal-overlay">
+                <div class="modal-card">
+                    <div class="modal-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+                    </div>
+                    <h3>Unsaved Draft Found</h3>
+                    <p>We found an incomplete expense claim from your last session. Would you like to continue working on it or start a new one?</p>
+                    <div class="modal-actions">
+                        <button @click="keepDraft" class="btn btn-primary">Resume Draft</button>
+                        <button @click="discardAndNew" class="btn btn-secondary">Start Anew</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="currentTab === 'claims'">
+                <main v-if="!isSubmitted">
+                    <div class="summary-card">
+                        <h2>Claim Details</h2>
+                        <div class="card-row">
+                            <div class="form-group">
+                                <label>Claimant</label>
+                                <input type="text" disabled :value="`${currentUser.last_name}, ${currentUser.first_name}`" style="background-color: #f3f4f6;">
+                            </div>
+                            <div class="form-group">
+                                <label>Account No.</label>
+                                <input type="text" disabled :value="currentUser.account_no" style="background-color: #f3f4f6;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Event Name / Purpose</label>
+                            <input type="text" v-model="claim.event_name" placeholder="e.g., Q3 Tech Conference">
+                        </div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h2>Total Claim: {{ claim.total_aed }} AED</h2>
+                    </div>
+
+                    <div class="claim-card" v-for="(item, index) in claim.items" :key="index">
+                        <div class="card-header">
+                            <h3>Item {{ index + 1 }}</h3>
+                            <button @click="removeItem(index)" class="btn-text text-red">Remove</button>
+                        </div>
+                        <div class="card-row">
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select v-model="item.category" @change="handleCategoryChange(item)">
+                                    <option value="" disabled>Select...</option>
+                                    <option v-for="(subItems, catName) in accountingMatrix" :value="catName">{{ catName }}</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cost Type</label>
+                                <select v-model="item.cost_type_name" @change="handleCostNameChange(item)" :disabled="!item.category">
+                                    <option value="" disabled>Select type...</option>
+                                    <option v-if="item.category" v-for="sub in accountingMatrix[item.category]" :value="sub.name">{{ sub.name }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="card-row">
+                            <div class="form-group">
+                                <label>GL Code (Auto)</label>
+                                <input type="text" v-model="item.cost_type_nr" readonly style="background-color: #f3f4f6; color: #6b7280;">
+                            </div>
+                            <div class="form-group">
+                                <label>Pillar</label>
+                                <select v-model="item.pillar_name">
+                                    <option value="" disabled>Select pillar...</option>
+                                    <option v-for="pillar in pillars" :value="pillar">{{ pillar }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Description (Receipt Details)</label>
+                            <input type="text" v-model="item.description" placeholder="e.g., Client Dinner at DIFC">
+                        </div>
+
+                        <div class="card-row">
+                            <div class="form-group">
+                                <label>Amount</label>
+                                <input type="number" v-model.number="item.original_amount" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Currency</label>
+                                <select v-model="item.original_currency">
+                                    <option value="AED">AED</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="TRY">TRY</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group"><label class="aed-preview">Converted: {{ item.aed_amount }} AED</label></div>
+                    </div>
+
+                    <button @click="addItem" class="btn btn-secondary mb-4">+ Add Expense Item</button>
+                    
+                    <div class="form-group mt-4">
+                        <label>Attach Receipts (Camera, Gallery, or PDF)</label>
+                        <input type="file" multiple accept="image/*,application/pdf" @change="handleFiles" class="file-input" ref="fileInputRef">
+                    </div>
+
+                    <div class="receipt-gallery" v-if="filesToUpload.length > 0">
+                        <div class="thumbnail-wrapper" v-for="(fileObj, index) in filesToUpload" :key="index">
+                            <img v-if="fileObj.isImage" :src="fileObj.preview" class="thumbnail-img" alt="Receipt preview">
+                            <div v-else class="pdf-preview">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                <span>PDF</span>
+                            </div>
+                            <button @click.prevent="removeFile(index)" class="delete-icon">×</button>
+                            <span class="file-name">{{ fileObj.name }}</span>
+                        </div>
+                    </div>
+
+                    <button @click="submitClaim" class="btn btn-primary">Submit to Finance</button>
+                </main>
+
+                <main v-else class="success-screen">
+                    <h2>Success!</h2>
+                    <p>Your expense claim (Ref: #{{ claim.id }}) has been securely forwarded to the accounting ledger queue.</p>
+                    <button @click="resetForm" class="btn btn-secondary mt-4">Start New Claim</button>
+                </main>
+            </div>
+
+            <div v-show="currentTab === 'finance'">
+                <main>
+                    <div class="card-header" style="align-items: center;">
+                        <h2>Queue Management</h2>
+                        <a href="api.php?action=export_csv" class="btn btn-primary" style="width: auto; height: 36px; padding: 0 15px; text-decoration: none; display: flex; align-items: center;">Download CSV</a>
+                    </div>
+                    
+                    <div class="claim-card" v-for="fc in financeClaims" :key="fc.id" style="margin-bottom: 1.5rem;">
+                        <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                            <h3>Claim Ref: #{{ fc.id }}</h3>
+                            <span v-if="fc.status === 'pending'" class="badge" style="background: #fef3c7; color: #d97706; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">PENDING</span>
+                            <span v-if="fc.status === 'under review'" class="badge" style="background: #dbeafe; color: #1d4ed8; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">UNDER REVIEW</span>
+                            <span v-if="fc.status === 'approved'" class="badge" style="background: #d1fae5; color: #059669; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">APPROVED</span>
+                            <span v-if="fc.status === 'declined'" class="badge" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">DECLINED</span>
+                        </div>
+                        <div class="card-row" style="margin-bottom: 8px;">
+                            <div><strong>Claimant:</strong> {{ fc.first_name }} {{ fc.last_name }}</div>
+                            <div><strong>Date Filed:</strong> {{ new Date(fc.updated_at).toLocaleDateString() }}</div>
+                        </div>
+                        <div style="margin-bottom: 12px;"><strong>Event / Purpose:</strong> {{ fc.event_name }}</div>
+                        <div style="font-size: 1.1rem; font-weight: bold; color: var(--wurth-red); margin-bottom: 1rem;">Total: {{ fc.total_aed }} AED</div>
+
+                        <div style="background: #f9fafb; padding: 12px; border-radius: var(--radius); border: 1px dashed #e5e7eb;">
+                            <div class="card-row" style="margin-bottom: 8px; gap: 8px;">
+                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                    <label style="font-size: 0.8rem; font-weight: bold;">Change Status</label>
+                                    <select v-model="fc._localStatus" style="height: 38px; padding: 0 8px; font-size: 0.85rem;">
+                                        <option value="pending">Pending</option>
+                                        <option value="under review">Under Review</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="declined">Declined</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-top: 8px;">
+                                <label style="font-size: 0.8rem; font-weight: bold;">Review Remarks / Compliance Ledger</label>
+                                <input type="text" v-model="fc._localComments" placeholder="Add compliance parameters here..." style="height: 38px; padding: 0 8px; font-size: 0.85rem;">
+                            </div>
+                            <button @click="processApproval(fc.id, fc._localStatus || fc.status, fc._localComments)" class="btn btn-primary" style="height: 38px; font-size: 0.85rem; margin-top: 8px;">Update Status & Remarks</button>
+                        </div>
+                    </div>
+                    <div class="claim-card" v-if="financeClaims.length === 0" style="text-align: center; padding: 30px;">No pending historical entries found.</div>
+                </main>
+            </div>
+
+            <div v-show="currentTab === 'history'">
+                <main>
+                    <div class="card-header" style="align-items: center; margin-bottom: 1.5rem;">
+                        <h2>My Claims History</h2>
+                    </div>
+                    
+                    <div class="claim-card" v-for="c in myClaims" :key="c.id" style="margin-bottom: 1.5rem;">
+                        <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                            <h3>Claim Ref: #{{ c.id }}</h3>
+                            <span v-if="c.status === 'pending'" class="badge" style="background: #fef3c7; color: #d97706; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">PENDING</span>
+                            <span v-if="c.status === 'under review'" class="badge" style="background: #dbeafe; color: #1d4ed8; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">UNDER REVIEW</span>
+                            <span v-if="c.status === 'approved'" class="badge" style="background: #d1fae5; color: #059669; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">APPROVED</span>
+                            <span v-if="c.status === 'declined'" class="badge" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">DECLINED</span>
+                        </div>
+                        <div class="card-row" style="margin-bottom: 8px;">
+                            <div><strong>Purpose:</strong> {{ c.event_name }}</div>
+                            <div><strong>Date Filed:</strong> {{ new Date(c.updated_at).toLocaleDateString() }}</div>
+                        </div>
+                        <div style="font-size: 1.1rem; font-weight: bold; color: var(--wurth-red); margin-bottom: 0.5rem;">Total: {{ c.total_aed }} AED</div>
+                        
+                        <div v-if="c.finance_comments" style="font-size: 0.85rem; background: #f3f4f6; padding: 8px 12px; border-radius: 4px; border-left: 3px solid #CC0000; margin-top: 8px;">
+                            <strong>Auditor Feedback Ledger:</strong> {{ c.finance_comments }}
+                        </div>
+                    </div>
+                    <div class="claim-card" v-if="myClaims.length === 0" style="text-align: center; padding: 30px;">No submitted historical entries found.</div>
+                </main>
+            </div>
+
+            <nav class="bottom-nav">
+                <div class="nav-item" :class="{active: currentTab === 'claims'}" @click="currentTab = 'claims'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    <span>Claims Form</span>
+                </div>
+                <div v-if="currentUser.role === 'finance'" class="nav-item" :class="{active: currentTab === 'finance'}" @click="currentTab = 'finance'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    <span>Auditor Queue</span>
+                </div>
+                <div v-if="currentUser.role === 'claimant'" class="nav-item" :class="{active: currentTab === 'history'}" @click="currentTab = 'history'">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>My Claims</span>
+                </div>
+            </nav>
+
+        </div>
+    </div>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+:root {
+  --wurth-red: #CC0000; 
+  --wurth-red-hover: #A30000;
+  --text-main: #1A1A1A;
+  --bg-body: #F7F7F8;
+  --bg-card: #FFFFFF;
+  --border-color: #E2E8F0;
+  --spacing-sm: 8px; --spacing-md: 16px; --spacing-lg: 24px;
+  --radius: 8px;
+}
+
+@font-face {
+    font-family: 'Wuerth';
+    src: url('assets/fonts/Wuerth-Bold.woff2') format('woff2'),
+        url('assets/fonts/Wuerth-Bold.woff') format('woff');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Wuerth Book';
+    src: url('assets/fonts/Wuerth-Book.woff2') format('woff2'),
+        url('assets/fonts/Wuerth-Book.woff') format('woff');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Wuerth Extra Bold Cond';
+    src: url('assets/fonts/Wuerth-ExtraBoldCond.woff2') format('woff2'),
+        url('assets/fonts/Wuerth-ExtraBoldCond.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Wuerth Book'; }
+body { font-family: system-ui, sans-serif; background: var(--bg-body); color: var(--text-main);}
+[v-cloak] { display: none; }
+
+.app-container { max-width: 600px; margin: 0 auto; padding: var(--spacing-md); }
+header { display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-md); margin-bottom: var(--spacing-md); border-bottom: 3px solid var(--wurth-red); }
+.status-indicator { font-size: 0.85rem; font-weight: 600; color: #666; }
+.brand-logo {
+    height: 32px; /* Adjust height to match your header aesthetic */
+    width: auto;   /* Maintains aspect ratio */
+    display: block;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--wurth-red);
+    background: var(--bg-card);
+}
+.claim-card, .summary-card { background: var(--bg-card); padding: var(--spacing-md); border-radius: var(--radius); border: 1px solid var(--border-color); margin-bottom: var(--spacing-md); }
+.card-header { display: flex; justify-content: space-between; margin-bottom: var(--spacing-sm); }
+.card-row { display: flex; gap: var(--spacing-sm); }
+.card-row > .form-group { flex: 1; }
+
+.form-group { margin-bottom: var(--spacing-md); display: flex; flex-direction: column; }
+label { font-size: 0.875rem; font-weight: 600; margin-bottom: 4px; }
+.aed-preview { color: var(--wurth-red); font-weight: 700; }
+
+input, select { width: 100%; height: 48px; padding: 0 var(--spacing-sm); font-size: 16px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-card); }
+input:focus, select:focus { outline: none; border-color: var(--wurth-red); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 48px; font-weight: 600; border: none; border-radius: var(--radius); cursor: pointer; }
+.btn-primary { background: var(--wurth-red); color: #FFF; }
+.btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+.btn-text { background: transparent; border: none; font-weight: 600; cursor: pointer; }
+.text-red { color: var(--wurth-red); }
+.mt-4 { margin-top: 1rem; } .mb-4 { margin-bottom: 1rem; }
+
+.success-screen { text-align: center; padding: 40px 20px; }
+
+/* =========================================
+   Receipt Gallery
+   ========================================= */
+.receipt-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.thumbnail-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: var(--spacing-sm);
+    background: var(--bg-card);
+}
+
+.thumbnail-img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover; /* Crops the image nicely to fit the square */
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.pdf-preview {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f3f4f6;
+    color: var(--wurth-red);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.file-name {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.delete-icon {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--wurth-red);
+    color: white;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-icon:hover {
+    background-color: var(--wurth-red-hover);
+}
+
+/* =========================================
+   Bottom Navigation (Native App Feel)
+   ========================================= */
+.app-container {
+    padding-bottom: 80px; /* Make room so the bottom nav doesn't hide content */
+}
+
+/* Update your existing .bottom-nav CSS to this */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    /* Center it horizontally */
+    left: 50%;
+    transform: translateX(-50%);
+    /* Match the max-width of your main app container */
+    width: 100%;
+    max-width: 600px;    
+    background-color: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    padding-bottom: env(safe-area-inset-bottom, 10px);
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item.active {
+    color: var(--wurth-red);
+}
+
+.nav-icon {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 4px;
+}
+
+/* =========================================
+   Finance Data Table
+   ========================================= */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th, td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+th {
+    background-color: #f3f4f6;
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+td {
+    white-space: nowrap;
+}
+
+/* =========================================
+   Fullscreen Spinner Overlay
+   ========================================= */
+.loading-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-weight: 600;
+}
+.spinner {
+    width: 50px; height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    border-top-color: var(--wurth-red);
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-md);
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* =========================================
+   Modal Backdrop & Card
+   ========================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(24, 24, 27, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+.modal-card {
+    background: var(--bg-card);
+    max-width: 450px; width: 100%;
+    padding: var(--spacing-lg);
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    text-align: center;
+}
+.modal-icon {
+    color: var(--wurth-red);
+    margin-bottom: var(--spacing-sm);
+}
+.modal-card h3 {
+    margin-bottom: var(--spacing-sm);
+    font-size: 1.35rem;
+}
+.modal-card p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: var(--spacing-lg);
+}
+.modal-actions {
+    display: flex;
+    gap: var(--spacing-md);
+}

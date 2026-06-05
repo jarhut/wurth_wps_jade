@@ -1,0 +1,7 @@
+# Ignore uploads receipts
+uploads/*
+!uploads/.gitkeep
+
+# OS generated files
+.DS_Store
+Thumbs.db
