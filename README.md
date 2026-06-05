@@ -31,7 +31,9 @@ A mobile-first expense claims management system for Würth Professional Solution
 | Role      | Email                        | Password      |
 |-----------|------------------------------|---------------|
 | Claimant  | `claimant1@wurth-wps.com`    | `Password123` |
+| Claimant  | `claimant2@wurth-wps.com`    | `Password123` |
 | Finance   | `finance1@wurth-wps.com`     | `Password123` |
+| Finance   | `finance2@wurth-wps.com`     | `Password123` |
 
 > **Note:** After importing `database.sql`, you may need to run the password hash migration to ensure `password_verify` works correctly with your local PHP version. You can do this by visiting any test account and verifying login works.
 
